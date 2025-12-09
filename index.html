@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rachana HM | AI & Data Science Portfolio</title>
+    
+    <!-- Tailwind with Dark Mode Configuration -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0f172a',
+                        darkcard: '#1e293b',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; overflow-x: hidden; transition: background-color 0.3s ease, color 0.3s ease; }
+        
+        /* 3D Gradient Text */
+        .gradient-text {
+            background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% auto;
+            animation: gradientMove 5s ease infinite;
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 3D Tilt Card Base Styles */
+        .tilt-card {
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
+        
+        .tilt-content {
+            transition: transform 0.1s ease-out, background-color 0.3s, border-color 0.3s;
+            transform-style: preserve-3d;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Pop-out effect for icons/text inside cards */
+        .tilt-content > * { transform: translateZ(20px); }
+        .tilt-content h3 { transform: translateZ(30px); }
+        .tilt-content i { transform: translateZ(40px); }
+
+        /* Profile Blob */
+        .profile-blob {
+            border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+            animation: morph 8s ease-in-out infinite alternate, float 6s ease-in-out infinite;
+            box-shadow: 20px 20px 60px rgba(0,0,0,0.1), -20px -20px 60px rgba(255,255,255,0.8);
+            transition: box-shadow 0.3s;
+        }
+
+        /* Dark Mode Blob Shadow Adjustment */
+        .dark .profile-blob {
+            box-shadow: 20px 20px 60px rgba(0,0,0,0.5), -5px -5px 20px rgba(255,255,255,0.05);
+            border-color: #334155;
+        }
+
+        @keyframes morph {
+            0% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+            100% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0); }
+        }
+
+        /* Scroll Reveal Animation */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px) scale(0.95);
+            transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none; 
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-darkbg dark:text-gray-200 transition-colors duration-300 relative">
+
+    <!-- Navigation -->
+    <nav class="fixed w-full bg-white/80 dark:bg-darkbg/80 backdrop-blur-md shadow-sm z-50 border-b border-gray-100 dark:border-gray-800 transition-colors duration-300">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="font-bold text-xl tracking-tighter hover:scale-105 transition transform cursor-pointer dark:text-white">
+                RACHANA<span class="text-pink-600 dark:text-pink-400">.HM</span>
+            </div>
+            
+            <div class="flex items-center gap-6">
+                <div class="space-x-8 hidden md:block text-sm font-medium">
+                    <a href="#about" class="hover:text-pink-600 dark:hover:text-pink-400 transition relative group">About</a>
+                    <a href="#skills" class="hover:text-pink-600 dark:hover:text-pink-400 transition relative group">Skills</a>
+                    <a href="#projects" class="hover:text-pink-600 dark:hover:text-pink-400 transition relative group">Projects</a>
+                </div>
+                
+                <!-- Theme Toggle Button -->
+                <button onclick="toggleTheme()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-600 dark:text-yellow-400">
+                    <i id="theme-icon" data-lucide="moon" class="w-5 h-5"></i>
+                </button>
+
+                <a href="#contact" class="hidden md:block px-5 py-2.5 bg-gray-900 dark:bg-pink-600 text-white rounded-full hover:bg-pink-600 dark:hover:bg-pink-500 transition shadow-lg hover:shadow-pink-500/30 transform hover:-translate-y-1">Contact Me</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header id="about" class="relative pt-32 pb-32 px-6 overflow-hidden min-h-[90vh] flex items-center">
+        <!-- 3D Canvas -->
+        <div id="canvas-container"></div>
+
+        <div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center relative z-10 pointer-events-none">
+            <div class="pointer-events-auto reveal active">
+                <div class="inline-block p-1 rounded-full bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-pink-100 dark:border-gray-700 mb-6 shadow-sm">
+                    <span class="px-3 py-1 text-xs font-bold text-pink-600 dark:text-pink-400 uppercase tracking-wide flex items-center gap-2">
+                        <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                        AI & Data Science Student
+                    </span>
+                </div>
+                <h1 class="text-5xl md:text-7xl font-extrabold mb-6 tracking-tight leading-[1.1] text-gray-900 dark:text-white">
+                    Turning data into <br>
+                    <span class="gradient-text">dimensions.</span>
+                </h1>
+                <p class="text-lg text-gray-600 dark:text-gray-300 mb-8 leading-relaxed max-w-lg bg-white/40 dark:bg-gray-800/40 backdrop-blur-sm p-4 rounded-xl border border-white/50 dark:border-gray-700/50">
+                    Hello! I'm <strong>Rachana HM</strong>, an Engineering student at CMRIT. I specialize in building intelligent systems that bridge the gap between abstract data and real-world solutions.
+                </p>
+                
+                <div class="flex flex-wrap gap-4 text-sm text-gray-700 dark:text-gray-300 mb-8 font-medium">
+                    <div class="flex items-center gap-2 bg-white/60 dark:bg-gray-800/60 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <i data-lucide="graduation-cap" class="w-4 h-4 text-pink-500"></i>
+                        <span>CGPA: 8.60 (CMRIT)</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white/60 dark:bg-gray-800/60 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <i data-lucide="lightbulb" class="w-4 h-4 text-yellow-500"></i>
+                        <span>Patent Filer (2024)</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <a href="#projects" class="px-8 py-3.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-bold hover:bg-gray-800 dark:hover:bg-gray-200 transition shadow-xl hover:shadow-2xl hover:-translate-y-1">View Projects</a>
+                    <a href="#contact" class="px-8 py-3.5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl font-bold hover:bg-white dark:hover:bg-gray-700 hover:border-pink-300 transition shadow-sm hover:shadow-lg hover:-translate-y-1">Contact Me</a>
+                </div>
+            </div>
+
+            <div class="relative flex justify-center pointer-events-auto reveal delay-200">
+                <!-- Decorative Blobs (Adaptive Opacity) -->
+                <div class="absolute top-0 right-10 w-20 h-20 bg-purple-400 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-xl opacity-70 dark:opacity-30 animate-blob"></div>
+                <div class="absolute top-0 -left-4 w-20 h-20 bg-pink-400 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-xl opacity-70 dark:opacity-30 animate-blob animation-delay-2000"></div>
+                <div class="absolute -bottom-8 left-20 w-20 h-20 bg-yellow-400 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-xl opacity-70 dark:opacity-30 animate-blob animation-delay-4000"></div>
+
+                <div class="tilt-card-wrapper">
+                    <img src="rach.jpeg" alt="Rachana HM" 
+                        class="relative w-72 h-72 md:w-96 md:h-96 object-cover profile-blob shadow-2xl border-4 border-white dark:border-gray-700 z-10" 
+                        onerror="this.src='https://ui-avatars.com/api/?name=Rachana+HM&background=random&size=400'">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Skills Section -->
+    <section id="skills" class="py-20 bg-white dark:bg-darkbg relative transition-colors duration-300">
+        <div class="max-w-6xl mx-auto px-6">
+            <h2 class="text-3xl font-bold mb-12 flex items-center gap-3 reveal text-gray-900 dark:text-white">
+                <i data-lucide="cpu" class="text-pink-600 dark:text-pink-400"></i> Technical Expertise
+            </h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <!-- Skill Card 1 -->
+                <div class="tilt-card h-full reveal delay-100" onmousemove="handleTilt(event, this)" onmouseleave="resetTilt(this)">
+                    <div class="tilt-content p-6 rounded-2xl border border-gray-100 dark:border-gray-700 bg-white/90 dark:bg-darkcard/90 shadow-lg h-full flex flex-col justify-between">
+                        <div>
+                            <div class="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mb-4">
+                                <i data-lucide="code" class="text-blue-500 dark:text-blue-400"></i>
+                            </div>
+                            <h3 class="font-bold text-gray-900 dark:text-gray-100 mb-2">Languages</h3>
+                        </div>
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            <span class="text-xs bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1 rounded text-gray-600 dark:text-gray-300">Python</span>
+                            <span class="text-xs bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1 rounded text-gray-600 dark:text-gray-300">Java</span>
+                            <span class="text-xs bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1 rounded text-gray-600 dark:text-gray-300">C/C++</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skill Card 2 -->
+                <div class="tilt-card h-full reveal delay-200" onmousemove="handleTilt(event, this)" onmouseleave="resetTilt(this)">
+                    <div class="tilt-content p-6 rounded-2xl border border-gray-100 dark:border-gray-700 bg-white/90 dark:bg-darkcard/90 shadow-lg h-full flex flex-col justify-between">
+                        <div>
+                            <div class="w-10 h-10 bg-purple-50 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mb-4">
+                                <i data-lucide="database" class="text-purple-500 dark:text-purple-400"></i>
+                            </div>
+                            <h3 class="font-bold text-gray-900 dark:text-gray-100 mb-2">Data & AI</h3>
+                        </div>
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            <span class="text-xs bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1 rounded text-gray-600 dark:text-gray-300">MySQL</span>
+                            <span class="text-xs bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1 rounded text-gray-600 dark:text-gray-300">TensorFlow</span>
+                            <span class="text-xs bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1 rounded text-gray-600 dark:text-gray-300">Tableau</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skill Card 3 -->
+                <div class="tilt-card h-full reveal delay-300" onmousemove="handleTilt(event, this)" onmouseleave="resetTilt(this)">
+                    <div class="tilt-content p-6 rounded-2xl border border-gray-100 dark:border-gray-700 bg-white/90 dark:bg-darkcard/90 shadow-lg h-full flex flex-col justify-between">
+                        <div>
+                            <div class="w-10 h-10 bg-green-50 dark:bg-green-900/30 rounded-lg flex items-center justify-center mb-4">
+                                <i data-lucide="globe" class="text-green-500 dark:text-green-400"></i>
+                            </div>
+                            <h3 class="font-bold text-gray-900 dark:text-gray-100 mb-2">Web Dev</h3>
+                        </div>
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            <span class="text-xs bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1 rounded text-gray-600 dark:text-gray-300">HTML/CSS</span>
+                            <span class="text-xs bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1 rounded text-gray-600 dark:text-gray-300">Flask</span>
+                            <span class="text-xs bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1 rounded text-gray-600 dark:text-gray-300">Node.js</span>
+                        </div>
+                    </div>
+                </div>
+
+                 <!-- Skill Card 4 -->
+                 <div class="tilt-card h-full reveal delay-400" onmousemove="handleTilt(event, this)" onmouseleave="resetTilt(this)">
+                    <div class="tilt-content p-6 rounded-2xl border border-gray-100 dark:border-gray-700 bg-white/90 dark:bg-darkcard/90 shadow-lg h-full flex flex-col justify-between">
+                        <div>
+                            <div class="w-10 h-10 bg-orange-50 dark:bg-orange-900/30 rounded-lg flex items-center justify-center mb-4">
+                                <i data-lucide="tool" class="text-orange-500 dark:text-orange-400"></i>
+                            </div>
+                            <h3 class="font-bold text-gray-900 dark:text-gray-100 mb-2">Tools</h3>
+                        </div>
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            <span class="text-xs bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1 rounded text-gray-600 dark:text-gray-300">PowerBI</span>
+                            <span class="text-xs bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1 rounded text-gray-600 dark:text-gray-300">Linux</span>
+                            <span class="text-xs bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1 rounded text-gray-600 dark:text-gray-300">GitHub</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Projects Section -->
+    <section id="projects" class="py-20 bg-gray-50/50 dark:bg-gray-900/50 transition-colors duration-300">
+        <div class="max-w-6xl mx-auto px-6">
+            <h2 class="text-3xl font-bold mb-12 flex items-center gap-3 reveal text-gray-900 dark:text-white">
+                <i data-lucide="briefcase" class="text-pink-600 dark:text-pink-400"></i> Featured Projects
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Project 1 -->
+                <div class="tilt-card reveal delay-200" onmousemove="handleTilt(event, this)" onmouseleave="resetTilt(this)">
+                    <div class="tilt-content bg-white dark:bg-darkcard rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-700 shadow-xl h-full flex flex-col">
+                        <div class="h-56 bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/40 dark:to-emerald-900/40 flex items-center justify-center relative overflow-hidden group">
+                            <i data-lucide="leaf" class="w-20 h-20 text-green-500 dark:text-green-400 opacity-90 transition-transform duration-500 transform group-hover:scale-110 group-hover:rotate-12 translate-z-10"></i>
+                            <div class="absolute inset-0 bg-black/5 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition duration-300"></div>
+                        </div>
+                        <div class="p-8 flex-1 flex flex-col">
+                            <div class="flex gap-2 mb-4">
+                                <span class="text-xs font-bold uppercase tracking-wide bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-2 py-1 rounded">AI/ML</span>
+                                <span class="text-xs font-bold uppercase tracking-wide bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">Python</span>
+                            </div>
+                            <h3 class="text-2xl font-bold mb-3 text-gray-900 dark:text-white">Eco-Friendly Barrier</h3>
+                            <p class="text-gray-500 dark:text-gray-400 text-sm mb-6 leading-relaxed flex-1">
+                                An intelligent web platform utilizing AI to predict optimal crop selection based on environmental data. Includes a fertilizer recommendation engine for sustainable farming.
+                            </p>
+                            <div class="flex items-center justify-between border-t border-gray-100 dark:border-gray-700 pt-4 mt-auto">
+                                <div class="flex gap-4 text-gray-400 dark:text-gray-500 text-xs">
+                                    <span class="flex items-center gap-1"><i data-lucide="database" class="w-3 h-3"></i> MySQL</span>
+                                    <span class="flex items-center gap-1"><i data-lucide="server" class="w-3 h-3"></i> PHP</span>
+                                </div>
+                                <a href="#" class="text-green-600 dark:text-green-400 font-bold text-sm hover:underline">View Case Study &rarr;</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project 2 -->
+                <div class="tilt-card reveal delay-400" onmousemove="handleTilt(event, this)" onmouseleave="resetTilt(this)">
+                    <div class="tilt-content bg-white dark:bg-darkcard rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-700 shadow-xl h-full flex flex-col">
+                        <div class="h-56 bg-gradient-to-br from-indigo-50 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40 flex items-center justify-center relative overflow-hidden group">
+                            <i data-lucide="pen-tool" class="w-20 h-20 text-indigo-500 dark:text-indigo-400 opacity-90 transition-transform duration-500 transform group-hover:scale-110 group-hover:-rotate-12"></i>
+                            <div class="absolute inset-0 bg-black/5 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition duration-300"></div>
+                        </div>
+                        <div class="p-8 flex-1 flex flex-col">
+                            <div class="flex gap-2 mb-4">
+                                <span class="text-xs font-bold uppercase tracking-wide bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded">Machine Learning</span>
+                                <span class="text-xs font-bold uppercase tracking-wide bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">Flask</span>
+                            </div>
+                            <h3 class="text-2xl font-bold mb-3 text-gray-900 dark:text-white">Signature Detection System</h3>
+                            <p class="text-gray-500 dark:text-gray-400 text-sm mb-6 leading-relaxed flex-1">
+                                A computer vision system that validates signatures authenticity. Uses deep learning to distinguish between genuine signatures and forgeries or invalid inputs.
+                            </p>
+                            <div class="flex items-center justify-between border-t border-gray-100 dark:border-gray-700 pt-4 mt-auto">
+                                <div class="flex gap-4 text-gray-400 dark:text-gray-500 text-xs">
+                                    <span class="flex items-center gap-1"><i data-lucide="code" class="w-3 h-3"></i> Node.js</span>
+                                    <span class="flex items-center gap-1"><i data-lucide="layout" class="w-3 h-3"></i> HTML/CSS</span>
+                                </div>
+                                <a href="#" class="text-indigo-600 dark:text-indigo-400 font-bold text-sm hover:underline">View Case Study &rarr;</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Achievements -->
+            <div class="mt-12 bg-white dark:bg-darkcard p-8 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm reveal transition-colors duration-300">
+                <h3 class="text-xl font-bold mb-6 text-gray-900 dark:text-white">Key Achievements & Activities</h3>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="flex items-start gap-4 p-4 rounded-xl hover:bg-pink-50 dark:hover:bg-gray-800 transition cursor-default">
+                        <div class="p-3 bg-pink-100 dark:bg-pink-900/30 rounded-lg text-pink-600 dark:text-pink-400"><i data-lucide="award" class="w-6 h-6"></i></div>
+                        <div>
+                            <h4 class="font-bold text-gray-900 dark:text-white">Patent Filed (2024)</h4>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">"Double-door Washing Machine" design innovation.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-4 p-4 rounded-xl hover:bg-blue-50 dark:hover:bg-gray-800 transition cursor-default">
+                        <div class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400"><i data-lucide="users" class="w-6 h-6"></i></div>
+                        <div>
+                            <h4 class="font-bold text-gray-900 dark:text-white">Event Manager</h4>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Torvalds Club, CMRIT. Organized the Manthan Hackathon.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-20 bg-gray-900 dark:bg-black text-white relative overflow-hidden transition-colors duration-300">
+        <div class="absolute -top-20 -right-20 w-96 h-96 bg-pink-600 rounded-full blur-[100px] opacity-20 dark:opacity-40"></div>
+        <div class="absolute -bottom-20 -left-20 w-96 h-96 bg-purple-600 rounded-full blur-[100px] opacity-20 dark:opacity-40"></div>
+
+        <div class="max-w-4xl mx-auto px-6 relative z-10">
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div class="reveal">
+                    <h2 class="text-4xl font-bold mb-6">Let's Connect</h2>
+                    <p class="text-gray-400 mb-8 text-lg">
+                        Seeking opportunities in Software Engineering and Data Analysis. Ready to bring technical expertise to your team.
+                    </p>
+                    <div class="space-y-6">
+                        <a href="mailto:hmrachana14@gmail.com" class="flex items-center gap-4 text-gray-300 hover:text-pink-400 transition group">
+                            <div class="p-2 bg-gray-800 dark:bg-gray-900 rounded-lg group-hover:bg-gray-700 transition"><i data-lucide="mail" class="w-5 h-5"></i></div>
+                            <span class="group-hover:translate-x-1 transition">hmrachana14@gmail.com</span>
+                        </a>
+                        <div class="flex items-center gap-4 text-gray-300 hover:text-pink-400 transition group cursor-pointer">
+                            <div class="p-2 bg-gray-800 dark:bg-gray-900 rounded-lg group-hover:bg-gray-700 transition"><i data-lucide="phone" class="w-5 h-5"></i></div>
+                            <span class="group-hover:translate-x-1 transition">+91 6362730077</span>
+                        </div>
+                        <a href="https://www.linkedin.com/in/rachana-hm-708322328" target="_blank" class="flex items-center gap-4 text-gray-300 hover:text-pink-400 transition group">
+                            <div class="p-2 bg-gray-800 dark:bg-gray-900 rounded-lg group-hover:bg-gray-700 transition"><i data-lucide="linkedin" class="w-5 h-5"></i></div>
+                            <span class="group-hover:translate-x-1 transition">LinkedIn Profile</span>
+                        </a>
+                        <a href="https://github.com/settings/profile" target="_blank" class="flex items-center gap-4 text-gray-300 hover:text-pink-400 transition group">
+                            <div class="p-2 bg-gray-800 dark:bg-gray-900 rounded-lg group-hover:bg-gray-700 transition"><i data-lucide="github" class="w-5 h-5"></i></div>
+                            <span class="group-hover:translate-x-1 transition">GitHub Profile</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-darkcard text-gray-900 dark:text-white p-8 rounded-2xl shadow-2xl reveal delay-200 transition-colors duration-300">
+                    <form onsubmit="event.preventDefault(); submitForm();" class="space-y-5">
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mb-1">Name</label>
+                            <input type="text" id="contact-name" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition transform focus:scale-[1.01]" placeholder="Your Name" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mb-1">Email</label>
+                            <input type="email" id="contact-email" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition transform focus:scale-[1.01]" placeholder="your@email.com" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mb-1">Message</label>
+                            <textarea id="contact-message" rows="3" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition transform focus:scale-[1.01]" placeholder="I'd like to discuss an opportunity..." required></textarea>
+                        </div>
+                        <button type="submit" id="submit-btn" class="w-full bg-gradient-to-r from-gray-900 to-gray-800 dark:from-pink-600 dark:to-purple-600 text-white font-bold py-3.5 rounded-lg hover:opacity-90 transition duration-300 shadow-lg flex justify-center items-center gap-2 transform active:scale-95">
+                            Send Message <i data-lucide="send" class="w-4 h-4"></i>
+                        </button>
+                        <p id="form-status" class="text-center text-sm font-medium text-green-600 mt-2 opacity-0 transition">Message sent successfully!</p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="py-8 text-center text-gray-400 text-sm border-t border-gray-200 dark:border-gray-800 mt-12 bg-white dark:bg-darkbg">
+        &copy; 2025 Rachana HM. Built with HTML, Tailwind & Three.js.
+    </footer>
+
+    <!-- Three.js Background Script -->
+    <script>
+        // Store Three.js objects globally so we can update them on theme toggle
+        let threeObjects = {};
+
+        // --- 1. Three.js Background Logic ---
+        const initThreeJS = () => {
+            const container = document.getElementById('canvas-container');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            // Particles
+            const particlesGeometry = new THREE.BufferGeometry();
+            const particlesCount = 700;
+            const posArray = new Float32Array(particlesCount * 3);
+
+            for(let i = 0; i < particlesCount * 3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 15;
+            }
+
+            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+            // Material - Initial colors set here, but will be overridden by update3DTheme
+            const particlesMaterial = new THREE.PointsMaterial({
+                size: 0.03,
+                color: 0xec4899,
+                transparent: true,
+                opacity: 0.8,
+            });
+
+            const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+            scene.add(particlesMesh);
+
+            // Wireframe Geometry
+            const geoGeometry = new THREE.IcosahedronGeometry(3, 1);
+            const geoMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0x8b5cf6,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.05
+            });
+            const geoMesh = new THREE.Mesh(geoGeometry, geoMaterial);
+            scene.add(geoMesh);
+
+            camera.position.z = 5;
+
+            // Store refs
+            threeObjects = { particlesMaterial, geoMaterial };
+
+            // Mouse Interaction
+            let mouseX = 0;
+            let mouseY = 0;
+
+            document.addEventListener('mousemove', (event) => {
+                mouseX = event.clientX / window.innerWidth - 0.5;
+                mouseY = event.clientY / window.innerHeight - 0.5;
+            });
+
+            // Animation Loop
+            const animate = () => {
+                requestAnimationFrame(animate);
+
+                particlesMesh.rotation.y += 0.001;
+                particlesMesh.rotation.x += 0.0005;
+                
+                geoMesh.rotation.x -= 0.001;
+                geoMesh.rotation.y -= 0.001;
+
+                particlesMesh.rotation.y += 0.05 * (mouseX - particlesMesh.rotation.y) * 0.5;
+                particlesMesh.rotation.x += 0.05 * (mouseY - particlesMesh.rotation.x) * 0.5;
+
+                renderer.render(scene, camera);
+            };
+
+            animate();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            // Initial Theme Sync
+            update3DTheme();
+        };
+
+        // --- 2. Theme Logic ---
+        
+        // Colors for Three.js
+        const THEME_COLORS = {
+            light: {
+                particles: 0xec4899, // Pink-500
+                geo: 0x8b5cf6        // Violet-500
+            },
+            dark: {
+                particles: 0x22d3ee, // Cyan-400
+                geo: 0xec4899        // Pink-500
+            }
+        };
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+            updateThemeIcon();
+            update3DTheme();
+        }
+
+        function updateThemeIcon() {
+            const isDark = document.documentElement.classList.contains('dark');
+            const icon = document.getElementById('theme-icon');
+            
+            // Re-create icon using Lucide (needed because we're changing the data-lucide attr possibly, 
+            // but here we just swap SVG content or class)
+            // Simpler: Just swap the icon name in attribute and call createIcons again
+            icon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+            lucide.createIcons();
+        }
+
+        function update3DTheme() {
+            if (!threeObjects.particlesMaterial) return;
+
+            const isDark = document.documentElement.classList.contains('dark');
+            const colors = isDark ? THEME_COLORS.dark : THEME_COLORS.light;
+
+            threeObjects.particlesMaterial.color.setHex(colors.particles);
+            threeObjects.geoMaterial.color.setHex(colors.geo);
+            
+            // Adjust opacity for dark mode
+            threeObjects.geoMaterial.opacity = isDark ? 0.1 : 0.05;
+        }
+
+        function initTheme() {
+            const saved = localStorage.getItem('theme');
+            const sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            if (saved === 'dark' || (!saved && sysDark)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+            updateThemeIcon();
+        }
+
+        // Initialize Everything
+        window.addEventListener('load', () => {
+            initTheme();
+            initThreeJS();
+            lucide.createIcons();
+            
+            // Scroll Reveal
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+        });
+
+        // --- 3. 3D Tilt Card Logic ---
+        function handleTilt(e, card) {
+            const rect = card.getBoundingClientRect();
+            const content = card.querySelector('.tilt-content');
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const rotateX = ((y - centerY) / centerY) * -10;
+            const rotateY = ((x - centerX) / centerX) * 10;
+            content.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+        }
+
+        function resetTilt(card) {
+            const content = card.querySelector('.tilt-content');
+            content.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
+        }
+
+        // --- 4. Form Logic ---
+        const DB_KEY = 'portfolio_messages_db';
+
+        function submitForm() {
+            const name = document.getElementById('contact-name').value;
+            const email = document.getElementById('contact-email').value;
+            const message = document.getElementById('contact-message').value;
+            const btn = document.getElementById('submit-btn');
+            const status = document.getElementById('form-status');
+
+            if(!name || !email || !message) return;
+
+            btn.innerHTML = 'Sending...';
+            btn.disabled = true;
+
+            setTimeout(() => {
+                const existing = localStorage.getItem(DB_KEY);
+                const data = existing ? JSON.parse(existing) : [];
+
+                data.push({
+                    id: Date.now(),
+                    name: name,
+                    email: email,
+                    message: message,
+                    timestamp: new Date().toLocaleString()
+                });
+
+                localStorage.setItem(DB_KEY, JSON.stringify(data));
+
+                document.getElementById('contact-name').value = '';
+                document.getElementById('contact-email').value = '';
+                document.getElementById('contact-message').value = '';
+                
+                btn.innerHTML = 'Send Message <i data-lucide="send" class="w-4 h-4"></i>';
+                btn.disabled = false;
+                lucide.createIcons(); 
+                
+                status.style.opacity = '1';
+                setTimeout(() => { status.style.opacity = '0'; }, 3000);
+            }, 800);
+        }
+    </script>
+</body>
+</html>

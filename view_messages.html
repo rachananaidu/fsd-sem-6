@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Inbox | Portfolio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { background-color: #f3f4f6; font-family: 'Inter', sans-serif; }
+        .message-card { animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="p-4 md:p-8 max-w-5xl mx-auto">
+
+    <header class="flex justify-between items-center mb-8">
+        <div class="flex items-center gap-3">
+            <div class="p-3 bg-white rounded-xl shadow-sm border border-gray-200">
+                <i data-lucide="inbox" class="w-6 h-6 text-indigo-600"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Admin Inbox</h1>
+                <p class="text-sm text-gray-500">Real-time messages from Portfolio</p>
+            </div>
+        </div>
+        <button onclick="clearInbox()" class="text-sm text-red-500 hover:text-red-700 font-medium px-4 py-2 hover:bg-red-50 rounded-lg transition">
+            Clear All Messages
+        </button>
+    </header>
+
+    <main class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Stats Column -->
+        <div class="md:col-span-1 space-y-4">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <p class="text-gray-500 text-sm font-medium uppercase tracking-wide">Total Messages</p>
+                <p id="msg-count" class="text-4xl font-bold text-gray-900 mt-2">0</p>
+            </div>
+            
+            <div class="bg-indigo-600 p-6 rounded-2xl shadow-lg text-white">
+                <h3 class="font-bold text-lg mb-2">Status: Online</h3>
+                <p class="text-indigo-200 text-sm opacity-90">
+                    Listening for 'portfolio_messages_db' events in LocalStorage.
+                </p>
+                <div class="mt-4 flex items-center gap-2 text-xs">
+                    <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                    <span>Sync Active</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Feed -->
+        <div class="md:col-span-2">
+            <div id="inbox-list" class="space-y-4">
+                <!-- Messages render here -->
+                <div class="text-center py-12 text-gray-400">
+                    <i data-lucide="mail-open" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                    <p>No messages yet.</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // Init Icons
+        lucide.createIcons();
+
+        const DB_KEY = 'portfolio_messages_db';
+        const list = document.getElementById('inbox-list');
+        const countEl = document.getElementById('msg-count');
+
+        // 1. Render Function
+        function renderMessages(data) {
+            countEl.innerText = data.length;
+
+            if (data.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center py-12 text-gray-400">
+                        <i data-lucide="mail-open" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                        <p>No messages yet.</p>
+                    </div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            // Sort newest first
+            const sorted = [...data].reverse();
+
+            list.innerHTML = sorted.map(msg => `
+                <div class="message-card bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                                ${msg.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-900">${msg.name}</h4>
+                                <p class="text-xs text-gray-500">${msg.email}</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded">${msg.timestamp}</span>
+                    </div>
+                    <div class="pl-13 ml-13">
+                        <p class="text-gray-700 text-sm leading-relaxed border-l-2 border-indigo-100 pl-4 py-1">
+                            ${msg.message}
+                        </p>
+                    </div>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        // 2. Load Data
+        function loadData() {
+            const str = localStorage.getItem(DB_KEY);
+            const data = str ? JSON.parse(str) : [];
+            renderMessages(data);
+        }
+
+        // 3. Clear Data
+        function clearInbox() {
+            if(confirm("Delete all messages?")) {
+                localStorage.removeItem(DB_KEY);
+                loadData();
+            }
+        }
+
+        // 4. Listen for Real-Time Updates
+        window.addEventListener('storage', (e) => {
+            if (e.key === DB_KEY) {
+                const newData = e.newValue ? JSON.parse(e.newValue) : [];
+                renderMessages(newData);
+            }
+        });
+
+        // Initial Load
+        loadData();
+
+    </script>
+</body>
+</html>
